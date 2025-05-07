@@ -1,0 +1,10 @@
+# Error Log
+# Timestamp | Level | Message | Details Traceback (most recent call last):
+  File "/Users/kulmeetsinghpt/Development/presentation_assistant3/main.py", line 36, in main
+    await tts.speak(text)
+  File "/Users/kulmeetsinghpt/Development/presentation_assistant3/tts_service.py", line 33, in speak
+    audio = b"".join(chunks)
+  File "/Users/kulmeetsinghpt/Development/presentation_assistant3/.venv/lib/python3.10/site-packages/elevenlabs/text_to_speech/client.py", line 214, in convert
+    raise ApiError(status_code=_response.status_code, body=_response_json)
+elevenlabs.core.api_error.ApiError: status_code: 401, body: {'detail': {'status': 'quota_exceeded', 'message': 'This request exceeds your quota of 10000. You have 92 credits remaining, while 261 credits are required for this request.'}}
+
