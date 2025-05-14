@@ -1,65 +1,38 @@
-# slide_detector.py
-
 import asyncio
 from aiohttp import web
-from slide_mapping import mapping
 
-# Holds the last slide's objectId (e.g. "g12345")
-current_slide_id: str | None = None
-current_slide_index: int = 1
+current_slide_id = None
+slide_queue      = asyncio.Queue()
 
 async def slide_change(request):
-    """
-    Handle GET /slide-change?hash=… from the browser.
-    Extract the fragment ID, log it, and update current_slide_id.
-    Return CORS‐enabled response so Chrome won't block the request.
-    """
-    raw_hash = request.query.get("hash", "")  # e.g. "#slide=id.g12345"
-
-    if raw_hash.startswith("#slide=id."):
-        new_id = raw_hash.split("#slide=id.", 1)[1]
-        print(f"[DETECTOR] Received hash: {raw_hash!r} → parsed ID: {new_id!r}")
-        index = mapping.update_current_slide(new_id)
-        print(f"[DETECTOR] Mapped to slide index: {index}")
-    else:
-        print(f"[DETECTOR] Received non-slide hash: {raw_hash!r}")
-
-    return web.Response(
-        text="ok",
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET,OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-        }
-    )
+    global current_slide_id
+    raw = request.query.get("hash", "")
+    if raw.startswith("#slide="):
+        new = raw.split("#slide=", 1)[1]
+        print(f"[DETECTOR] {raw!r} → {new!r}")
+        current_slide_id = new
+        await slide_queue.put(new)
+    return web.Response(text="ok", headers={
+        "Access-Control-Allow-Origin": "*"
+    })
 
 async def slide_options(request):
-    """
-    Handle preflight OPTIONS requests for CORS.
-    """
-    return web.Response(
-        status=200,
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET,OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-        }
-    )
+    return web.Response(status=200, headers={
+        "Access-Control-Allow-Origin": "*"
+    })
 
-async def run_detector():
-    """
-    Spin up an aiohttp server on port 8765 to receive slide-change callbacks.
-    """
+async def healthz(request):
+    return web.Response(text="ok")
+
+def create_app():
     app = web.Application()
-    app.router.add_route("GET",     "/slide-change", slide_change)
-    app.router.add_route("OPTIONS", "/slide-change", slide_options)
-
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 8765)
-    await site.start()
-
-    print("▶ Slide detector listening on http://localhost:8765/slide-change")
+    app.add_routes([
+        web.get ("/slide-change", slide_change),
+        web.options("/slide-change", slide_options),
+        web.get ("/healthz",       healthz),
+    ])
+    return app
 
 if __name__ == "__main__":
-    asyncio.run(run_detector())
+    # Blocks until you press Ctrl+C
+    web.run_app(create_app(), host="0.0.0.0", port=8765)
