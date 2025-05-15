@@ -12,24 +12,48 @@ async def slide_change(request):
         print(f"[DETECTOR] {raw!r} → {new!r}")
         current_slide_id = new
         await slide_queue.put(new)
-    return web.Response(text="ok", headers={
-        "Access-Control-Allow-Origin": "*"
-    })
+    return web.Response(
+        text="ok",
+        headers={
+            "Access-Control-Allow-Origin": "*"
+        }
+    )
 
 async def slide_options(request):
-    return web.Response(status=200, headers={
-        "Access-Control-Allow-Origin": "*"
-    })
+    return web.Response(
+        status=200,
+        headers={
+            "Access-Control-Allow-Origin": "*"
+        }
+    )
 
 async def healthz(request):
-    return web.Response(text="ok")
+    return web.Response(
+        text="ok",
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*"
+        }
+    )
+
+async def run_detector():
+    """
+    Coroutine to start the aiohttp server under the current asyncio loop,
+    then return the asyncio.Queue of slide IDs.
+    """
+    app = create_app()
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, host="0.0.0.0", port=8765)
+    await site.start()
+    return slide_queue
 
 def create_app():
     app = web.Application()
     app.add_routes([
-        web.get ("/slide-change", slide_change),
+        web.get   ("/slide-change", slide_change),
         web.options("/slide-change", slide_options),
-        web.get ("/healthz",       healthz),
+        web.get   ("/healthz",       healthz),
     ])
     return app
 

@@ -237,6 +237,33 @@ For additional support:
 - v1.1.0: Added Q&A functionality
 - v1.2.0: Improved speech recognition
 - v1.3.0: Enhanced error recovery
+- v1.4.0: Simplified slide detection and TTS integration
+
+## Recent Changes and Improvements
+
+### Slide Detection Improvements
+- Removed dependency on separate web server for slide detection
+- Integrated slide detection directly into main application
+- Improved handling of slide ID mapping
+- Added support for real-time slide change detection
+
+### TTS Integration
+- Simplified TTS service integration
+- Improved audio playback handling
+- Enhanced error handling for TTS operations
+- Added support for continuous narration
+
+### Code Structure
+- Streamlined main application flow
+- Improved error handling and logging
+- Enhanced configuration management
+- Better separation of concerns
+
+### Performance Optimizations
+- Reduced memory usage
+- Improved response times
+- Enhanced audio buffering
+- Better resource management
 
 ## Future Improvements
 
