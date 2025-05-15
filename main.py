@@ -9,6 +9,7 @@ from aiohttp import web
 from slide_detector import slide_queue  # re-use your existing queue
 from slides_service import SlidesService
 from slide_mapping import mapping
+from tts_service import TTSService  # Add TTS import
 
 # Will hold slide-index → notes text
 notes = {}
@@ -66,7 +67,7 @@ async def main():
     logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s')
     logging.info("=== Presentation Assistant: Notes Stage ===")
 
-    # ——— Load config & SlidesService —————————————————————
+    # ——— Load config & Services —————————————————————
     with open("config.json") as f:
         cfg = json.load(f)
     slides_url = cfg.get("slides_url")
@@ -74,6 +75,7 @@ async def main():
         raise RuntimeError("Please set slides_url in config.json")
 
     slides = SlidesService("google_credentials.json", slides_url)
+    tts = TTSService()  # Initialize TTS service
     notes = slides.load_all_notes()
     logging.info(f"Loaded {len(notes)} slides worth of notes")
 
@@ -90,13 +92,17 @@ async def main():
     await site.start()
     logging.info("Detector listening on http://127.0.0.1:8765")
 
-    # ——— Consume slide events and print notes ─────────────────
+    # ——— Consume slide events and narrate notes ─────────────────
     while True:
         obj_id = await slide_queue.get()
         obj_id = obj_id.replace('id.', '')  # Strip the 'id.' prefix
         idx = mapping.update_current_slide(obj_id)  # Use update_current_slide instead of get
         text = notes.get(idx, "<no notes>")
         print(f"📝 Slide {idx} notes: {text}")
+        
+        # Narrate the notes using TTS
+        if text != "<no notes>":
+            await tts.speak(text)
 
 if __name__ == "__main__":
     asyncio.run(main())
