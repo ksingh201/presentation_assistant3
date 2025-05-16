@@ -36,4 +36,5 @@ ENV/
 google_credentials.json
 *.wav
 *.mp3
-temp_script_debug.py 
+temp_script_debug.py
+client_secret.json 
