@@ -6,9 +6,9 @@ import uuid
 import pyaudio
 
 # Set AWS credentials explicitly from your AWS CLI config
-os.environ['AWS_ACCESS_KEY_ID'] = "AKIAYSAMRTXYVRU4KB5T"
-os.environ['AWS_SECRET_ACCESS_KEY'] = "92szpS+c6XOmhHU2N0QLJTpsLvXSgj7tP6ijEjP9"
-os.environ['AWS_DEFAULT_REGION'] = "us-east-1"
+# os.environ['AWS_ACCESS_KEY_ID'] = "AKIAYSAMRTXYVRU4KB5T" # REMOVED
+# os.environ['AWS_SECRET_ACCESS_KEY'] = "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" # REMOVED
+os.environ['AWS_DEFAULT_REGION'] = "us-east-1" # RE-ENABLED
 
 from aws_sdk_bedrock_runtime.client import BedrockRuntimeClient, InvokeModelWithBidirectionalStreamOperationInput
 from aws_sdk_bedrock_runtime.models import InvokeModelWithBidirectionalStreamInputChunk, BidirectionalInputPayloadPart

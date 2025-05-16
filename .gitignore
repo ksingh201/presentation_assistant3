@@ -37,4 +37,5 @@ google_credentials.json
 *.wav
 *.mp3
 temp_script_debug.py
-client_secret.json 
+client_secret.json
+*.backup # Ignore backup files 

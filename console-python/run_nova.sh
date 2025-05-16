@@ -33,6 +33,19 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+echo "--- AWS Credentials Setup for Script ---"
+# Fetch credentials and region using aws configure get and export them
+# This makes them available to the Python script's EnvironmentCredentialsResolver
+export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)
+export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)
+export AWS_DEFAULT_REGION=$(aws configure get region)
+
+# Check if they were set (optional debug)
+# echo "AWS_ACCESS_KEY_ID is: $AWS_ACCESS_KEY_ID"
+# echo "AWS_SECRET_ACCESS_KEY is: $AWS_SECRET_ACCESS_KEY"
+# echo "AWS_DEFAULT_REGION is: $AWS_DEFAULT_REGION"
+echo "-------------------------------------"
+
 echo "Running Python script..."
 python3 modified_nova_sonic_simple.py
 
