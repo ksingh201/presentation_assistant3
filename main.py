@@ -6,33 +6,14 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 from aiohttp import web
-from slide_detector import slide_queue  # re-use your existing queue
+from slide_detector import slide_queue
 from slides_service import SlidesService
 from slide_mapping import mapping
-from tts_service import TTSService  # Add TTS import
+from tts_service import TTSService
+from qa_service import QAService
 
 # Will hold slide-index → notes text
 notes = {}
-
-def get_slide_notes(presentation_id):
-    creds = service_account.Credentials.from_service_account_file(
-        'google_credentials.json',
-        scopes=['https://www.googleapis.com/auth/presentations.readonly']
-    )
-    service = build('slides', 'v1', credentials=creds)
-    presentation = service.presentations().get(presentationId=presentation_id).execute()
-    slides = presentation.get('slides', [])
-    slide_notes = []
-    for i, slide in enumerate(slides, 1):
-        notes_text = ""
-        if 'slideProperties' in slide and 'notesPage' in slide['slideProperties']:
-            notes_page = slide['slideProperties']['notesPage']
-            if 'pageElements' in notes_page:
-                for element in notes_page['pageElements']:
-                    notes_text += extract_text_from_element(element)
-        notes_text = ' '.join(notes_text.split())
-        slide_notes.append((i, notes_text))
-    return slide_notes
 
 async def slide_change(request):
     """Handle GET /slide-change?hash=#slide=<ID>"""
@@ -75,7 +56,8 @@ async def main():
         raise RuntimeError("Please set slides_url in config.json")
 
     slides = SlidesService("google_credentials.json", slides_url)
-    tts = TTSService()  # Initialize TTS service
+    tts = TTSService()
+    qa = QAService()
     notes = slides.load_all_notes()
     logging.info(f"Loaded {len(notes)} slides worth of notes")
 
@@ -92,17 +74,54 @@ async def main():
     await site.start()
     logging.info("Detector listening on http://127.0.0.1:8765")
 
-    # ——— Consume slide events and narrate notes ─────────────────
+    # ——— Consume slide events and handle narration & Q&A ─────────────────
     while True:
         obj_id = await slide_queue.get()
         obj_id = obj_id.replace('id.', '')  # Strip the 'id.' prefix
-        idx = mapping.update_current_slide(obj_id)  # Use update_current_slide instead of get
+        idx = mapping.update_current_slide(obj_id)
         text = notes.get(idx, "<no notes>")
         print(f"📝 Slide {idx} notes: {text}")
         
         # Narrate the notes using TTS
         if text != "<no notes>":
             await tts.speak(text)
+            
+            # Q&A for all slides with limited attempts
+            print("[QA] Ready for questions about this slide...")
+            
+            # Initial prompt for questions
+            await tts.speak("Any questions about this slide?")
+            
+            # Allow up to 2 questions per slide
+            for _ in range(2):
+                try:
+                    # Ask for a question (non-blocking)
+                    question = await qa.ask_question(timeout=10.0)
+                    
+                    # Handle different response types
+                    if question is None:  # Silence or explicit "no"
+                        print("[QA] No questions detected")
+                        break
+                        
+                    # Get answer with slide context
+                    answer = await qa.answer(question, text)
+                    print(f"[QA] Question: {question}")
+                    print(f"[QA] Answer: {answer}")
+                    await tts.speak(answer)
+                    
+                    # Ask if they have more questions
+                    await tts.speak("Do you have any other questions about this slide?")
+                    more_questions = await qa.ask_question(timeout=5.0)
+                    
+                    # Handle follow-up response
+                    if more_questions is None:
+                        print("[QA] No more questions")
+                        break
+                        
+                except Exception as e:
+                    logging.error(f"QA error: {e}")
+                    await tts.speak("Sorry, I couldn't get an answer right now.")
+                    break
 
 if __name__ == "__main__":
     asyncio.run(main())

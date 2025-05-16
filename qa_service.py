@@ -18,31 +18,40 @@ class QAService:
         
         # Common variations of "no" responses
         self.no_responses = {
-            "no", "nope", "nah", "no questions", "no thank you",
-            "no thanks", "not now", "none", "nothing", "skip"
+            "no", "nope", "none", "nothing", "skip",
+            "no questions", "no thank you", "no thanks", "not now"
         }
 
-    async def ask_question(self) -> str:
+    async def ask_question(self, timeout: float = 5.0) -> str | None:
         """
         Use speech-to-text to get a question from the user.
-        Returns None if user indicates no questions.
-        """
-        print("[QA] Listening for a question...")
-        response = await self.stt.listen(5.0)  # Listen for 5 seconds
         
-        # Check for empty or very short responses
-        if not response or len(response) < 2:
-            print("[QA] No clear response detected")
-            return None
+        Returns:
+            str: The transcribed question if one was detected
+            None: If no audio was detected or on timeout
+        Raises:
+            Exception: If there was an error with the STT service
+        """
+        try:
+            response = await self.stt.listen(timeout)
             
-        # Check for "no" responses
-        if response in self.no_responses:
-            print(f"[QA] Detected 'no' response: {response!r}")
-            return None
+            # Handle silence/timeout
+            if not response or len(response) < 2:
+                return None
+                
+            # Convert to lowercase for comparison
+            response = response.lower()
             
-        # If we got here, assume it's a real question
-        print(f"[QA] Detected question: {response!r}")
-        return response
+            # Check for "no" responses
+            if response in self.no_responses:
+                return None
+                
+            # Return the original response (not lowercase)
+            return response
+            
+        except Exception as e:
+            # Log the error but let the caller handle it
+            raise Exception(f"STT error: {str(e)}")
 
     def get_answer(self, question: str) -> str:
         """

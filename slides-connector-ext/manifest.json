@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Slides Connector",
+  "version": "1.0.0",
+  "description": "Forwards Google Slides navigation events to local helper",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://docs.google.com/presentation/*",
+    "http://127.0.0.1:8765/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://docs.google.com/presentation/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
